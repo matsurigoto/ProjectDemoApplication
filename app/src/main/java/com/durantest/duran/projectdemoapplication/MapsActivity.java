@@ -10,6 +10,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.widget.Toast;
@@ -23,13 +24,19 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
 
     private GoogleMap mMap;
     private LocationManager lms;
     private Marker currentMarker;
     private LatLng prevLatLng;
-    private final int REQUEST_PERMISSION_PHONE_STATE=1;
+    private final int REQUEST_PERMISSION_PHONE_STATE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +46,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        String url = "http://www.pink-fun.com.tw/edufor4g/?school=fcu&app=test";
+        HttpClient client = new DefaultHttpClient();
+        HttpGet request = new HttpGet(url);
+        try {
+            HttpResponse response = client.execute(request);
+        } catch (Exception e) {
+
+        }
+
     }
 
     private void setMarker(Location location) {
@@ -79,19 +96,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-                    // Show an explanation to the user *asynchronously* -- don't block
-                    // this thread waiting for the user's response! After the user
-                    // sees the explanation, try again to request the permission.
-                    //showExplanation("Permission Needed", "Rationale", Manifest.permission.READ_PHONE_STATE, REQUEST_PERMISSION_PHONE_STATE);
                 } else {
-                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.INTERNET,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},1);
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_PHONE_STATE);
                 }
                 return;
             }
-            lms.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-            Location location = lms.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            lms.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            Location location = lms.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
-            if(location!=null){
+            if (location != null) {
                 setCamera(location);
                 setMarker(location);
                 setPolyLine(location);
@@ -100,6 +113,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } else {
             Toast.makeText(this, "請開啟定位服務", Toast.LENGTH_LONG).show();
             startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_PERMISSION_PHONE_STATE: {
+                // If request is cancelled, the result arrays are empty.
+
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        return;
+                    }
+                    lms.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+                    Location location = lms.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    if(location!=null){
+                        setCamera(location);
+                        setMarker(location);
+                        setPolyLine(location);
+                    }
+                } else {
+
+                }
+                return;
+            }
         }
     }
 
